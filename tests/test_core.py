@@ -124,3 +124,23 @@ def test_app_runs_and_reacts_to_inputs():
     assert not at.exception
     at.sidebar.radio[0].set_value("Um ano").run()
     assert not at.exception
+
+
+def test_ndvi_confirms_bare_summer_in_cereal_fields():
+    """NDVI do Sentinel-2: as três parcelas de cereal ficam sem vegetação verde no verão."""
+    files = sorted((ROOT / "data").glob("ndvi_braganca_field*_monthly.csv"))
+    assert len(files) == 3
+    for f in files:
+        d = pd.read_csv(f)
+        assert list(d["month"]) == list(range(1, 13))
+        assert d["ndvi_median"].between(-1, 1).all()
+        assert (d.loc[d["month"].isin([7, 8, 9]), "ndvi_median"] < 0.25).all()
+
+
+def test_high_margins_do_not_tie_all_strategies(tables):
+    """Com escala de receita própria, as margens altas continuam a distinguir as estratégias."""
+    _, crops, _, _ = tables
+    sy = ind.strategy_year_table(crops, margin_case=2)
+    res = sc.summarise(sc.subscores(sy, sc.reference_scales(sy)), {"receita": 1})
+    assert res["pontuacao"].nunique() == len(res)
+    assert res.index[0] == "C"
