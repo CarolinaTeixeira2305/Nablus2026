@@ -116,13 +116,13 @@ def test_app_runs_and_reacts_to_inputs():
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
     assert not at.exception
-    at.sidebar.radio[0].set_value("Anos secos").run()
-    at.sidebar.checkbox[0].set_value(True).run()   # rega
-    at.sidebar.checkbox[1].set_value(False).run()  # sem destino para forragem
+    at.sidebar.radio[0].set_value("Dry years").run()
+    at.sidebar.checkbox[0].set_value(True).run()   # potato irrigation
+    at.sidebar.checkbox[1].set_value(False).run()  # no outlet for forage
     at.sidebar.slider[0].set_value(10).run()
     at.multiselect[0].set_value(["B", "D", "C", "A"]).run()
     assert not at.exception
-    at.sidebar.radio[0].set_value("Um ano").run()
+    at.sidebar.radio[0].set_value("A single year").run()
     assert not at.exception
 
 
