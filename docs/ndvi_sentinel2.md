@@ -50,10 +50,12 @@ the crop calendars in `fieldshift/config.py`.
    pasture (0.7 to 0.9). Only in 3 of 27 field-years did December–March NDVI fall
    below 0.25 (field 2 in 2017 and 2020, field 3 in 2017; 2017 was a severe drought
    year). If any of these fields was fallow in one of those years, the fallow had
-   some spontaneous vegetation in winter. This casts doubt on the assumption that
-   **fallow leaves the soil bare all year**, which is the main reason the current
-   rotation has 250 bare-soil days a year. It does not disprove it: we do not know
-   whether any of these fields was actually fallow.
+   some spontaneous vegetation in winter. The assumption that **fallow leaves the
+   soil bare all year** (the main reason the current rotation has 250 bare-soil days
+   a year) was confirmed by an agronomist from the Bragança region; this result does
+   not contradict it, because we do not know whether any of these fields was
+   actually fallow. It does suggest checking how much spontaneous cover a fallow
+   field gets in wet winters.
 4. **The year matters.** Field 2 had 11 months below 0.25 in 2017 and only 4 in
    2024. A single year says little; several years are needed.
 
