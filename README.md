@@ -46,7 +46,7 @@ python scripts/plot_ndvi.py       # chart in docs/ndvi_braganca.png
 - **C. Forage instead of fallow:** potato → wheat → lucerne or clover
 - **D. Hardy cereal:** potato → rye or oats → legume
 
-For each one the app shows why it is proposed, the evidence, the expected benefits, what we do not know yet, and the risks to check with a local agronomist.
+For each one the app shows why it is proposed, the evidence, the expected benefits, what we do not know yet, and the risks to check on the farm.
 
 ## How it works
 
@@ -59,7 +59,7 @@ For each one the app shows why it is proposed, the evidence, the expected benefi
    Each rotation phase covers one third of the farm, so a strategy's value is the mean of its three crops.
 3. **Weighted score** (`fieldshift/scoring.py`). Each criterion (water, revenue, erosion, soil organic matter, frost) becomes a 0–1 sub-score against a fixed scale. The score is the sum of the sub-scores weighted by the farmer's priorities, from 0 to 100. Uncertainty is shown three ways: the range the score stays in 8 years out of 10, the share of years each strategy comes first, and a test with low and high margins.
 4. **SI component: particle swarm optimisation** (`fieldshift/pso.py`). A PSO written in numpy searches the space of priority weights to answer two questions: how much would the priorities have to change for first place to change, and which priorities explain the ranking the farmer already prefers. The score itself does not depend on the PSO; the PSO makes the result explainable and shows how robust it is.
-5. **App** (`app.py`). A one-page Streamlit app with a map, priority sliders, farm constraints (potato irrigation, an outlet for forage), scenarios (all years, dry years, heavy-rain years, a single year), editable margins and validation warnings.
+5. **App** (`app.py`). A one-page Streamlit app with a map, priority sliders, farm constraints (potato irrigation, an outlet for forage), scenarios (all years, dry years, heavy-rain years, a single year), editable margins and decision-support warnings.
 6. **Satellite check** (`scripts/fetch_ndvi.py`). Monthly Sentinel-2 L2A NDVI from 2017 to 2025 for three cereal fields north-east of Bragança (50 m squares, cloudy pixels removed using the SCL scene classification). It checks the bare-soil months in the wheat calendar. It is not part of the score.
 
 ## Results (equal priorities)
@@ -88,7 +88,7 @@ Strategy comparison in dry years and in heavy-rain years:
 
 - From July to September all three fields have no green vegetation (median NDVI below 0.25), as the wheat calendar says (soil uncovered from 11 July to 30 November). At the edges the calendar fits less well: NDVI already drops in May and June as the grain ripens and dries, and in some years vegetation is back in October and November.
 - On average a cereal field spends 6.4 months a year below 0.25 (about 195 days).
-- In winter NDVI is between 0.35 and 0.57: the soil is almost never bare, but the cover is sparse (a lush pasture would be 0.7–0.9). This casts doubt on the assumption that fallow land stays bare all year, without disproving it, because we do not know which crop was on each field in each year.
+- In winter NDVI is between 0.35 and 0.57: the soil is almost never bare, but the cover is sparse (a lush pasture would be 0.7–0.9). The local agronomist confirmed the bare-fallow assumption; this result does not contradict it, because we do not know which of these fields, if any, was fallow in each year. It does suggest checking how much spontaneous cover a fallow field gets in wet winters.
 - Low NDVI does not distinguish bare soil from dry stubble, which still protects the soil.
 
 Full method and limitations: [`docs/ndvi_sentinel2.md`](docs/ndvi_sentinel2.md).
@@ -136,14 +136,14 @@ Attributions:
 
 ## Use of AI (SI) tools
 
-Much of the code and documentation was written with Claude (Anthropic) as a coding assistant, directed and reviewed by the team. This includes the indicators, scoring, PSO, the Streamlit app, the Sentinel-2 NDVI scripts, the NDVI chart and this README. The problem framing, the choice of pilot site and current rotation, and the decisions above were made by the team. All agronomic and market values in `fieldshift/config.py` are working assumptions, not AI-verified facts.
+Much of the code and documentation was written with Claude (Anthropic) as a coding assistant, directed and reviewed by the team. This includes the indicators, scoring, PSO, the Streamlit app, the Sentinel-2 NDVI scripts, the NDVI chart and this README. The problem framing, the choice of pilot site and current rotation, and the decisions above were made by the team. All agronomic and market values in `fieldshift/config.py` were set by the team and reviewed by an agronomist from the Bragança region; none of them were verified by AI.
 
-## Assumptions to check with a local agronomist
+## Assumptions (reviewed by a local agronomist)
 
-All of them are in `fieldshift/config.py`:
+All of them are in `fieldshift/config.py`. An agronomist from the Bragança region reviewed every one of them in November 2026 and did not change any value. They describe the region, not a specific farm, so each farm should still check them against its own conditions:
 
 - crop calendars (soil cover, water-demand season, frost-sensitive stage);
-- fallow leaves the soil bare all year (the winter NDVI casts doubt on this, see above);
+- fallow leaves the soil bare all year (confirmed by the agronomist; the winter NDVI shows sparse cover in cereal fields, see above);
 - heavy-rain threshold (20 mm a day) and soil available water (100 mm);
 - crop coefficients and organic-matter index per crop;
 - nitrogen fixed by legumes;
@@ -151,7 +151,7 @@ All of them are in `fieldshift/config.py`:
 
 ## Limitations
 
-- Climate and satellite data measure conditions, not the real effect of the rotations on the soil. The effect comes from general agronomic literature and needs validation by local experts.
+- Climate and satellite data measure conditions, not the real effect of the rotations on the soil. The effect comes from general agronomic literature, reviewed by a local agronomist, not from field measurements.
 - NASA POWER has a grid of about 50 km: regional context, not field-level.
 - Bare-soil days come from crop calendars. The Sentinel-2 NDVI only checks them in three cereal fields, without knowing which crop was on each field in each year.
 - Revenue does not vary with the weather: a dry year does not lower the margin.

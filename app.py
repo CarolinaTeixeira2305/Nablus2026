@@ -113,7 +113,8 @@ except Exception as exc:  # no network, or no data for this point
 st.title("Field Shift: compare crop rotations")
 st.caption(f"Pilot site: {place} · Daily NASA POWER climate, 2000–2025 · NASA Space Apps Challenge 2026")
 st.warning("This tool supports the decision; it does not replace it. The results combine NASA climate data with "
-           "agronomic and market assumptions that still have to be validated by a local agronomist.", icon="⚠️")
+           "agronomic and market assumptions reviewed by an agronomist from the Bragança region. Check them "
+           "against your own farm before deciding.", icon="⚠️")
 
 years_all = clim.index
 if scenario == SCEN_DRY:
@@ -342,7 +343,7 @@ for tab, (key, s) in zip(tabs, cfg.STRATEGIES.items()):
             st.markdown("**Expected benefits**\n" + "\n".join(f"- {x}" for x in s["beneficios"]))
         with b:
             st.markdown("**What we do not know yet**\n" + "\n".join(f"- {x}" for x in s["lacunas"]))
-            st.markdown("**Risks to check with a local agronomist**\n" + "\n".join(f"- {x}" for x in s["riscos"]))
+            st.markdown("**Risks to check on your farm**\n" + "\n".join(f"- {x}" for x in s["riscos"]))
 
 # ----------------------------------------------------------------- 4. SI (PSO)
 st.header("4. How firm is this result?")
