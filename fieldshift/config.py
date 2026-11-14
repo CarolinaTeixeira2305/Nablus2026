@@ -122,7 +122,8 @@ LIMITATIONS = [
     "Os dados de clima e de satélite medem as condições do local, não o efeito real das rotações sobre o solo.",
     "O efeito das rotações vem de literatura agronómica geral e precisa de validação por peritos locais.",
     "O NASA POWER tem uma grelha de cerca de 50 km: é contexto regional, não mede a parcela.",
-    "Os dias de solo nu vêm de um calendário de culturas, não de imagens de satélite (NDVI ainda por integrar).",
+    "Os dias de solo nu vêm de um calendário de culturas. O NDVI do Sentinel-2 em três parcelas de cereal confirma "
+    "o verão sem vegetação verde, mas não sabemos que cultura esteve em cada parcela em cada ano.",
     "As margens e os preços são estimativas manuais, não valores de mercado confirmados.",
     "A ferramenta apoia a decisão, não a substitui. O agricultor e o técnico local têm a última palavra.",
 ]
