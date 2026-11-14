@@ -1,124 +1,148 @@
 # Field Shift: Adapting Farms with NASA Data
 
-Ferramenta de apoio à decisão que compara rotações de culturas com dados de clima da NASA.
-NASA Space Apps Challenge 2026.
+A decision-support tool that compares crop rotations using NASA climate data and Sentinel-2 imagery.
+NASA Space Apps Challenge 2026, challenge "Field Shift: Adapting Farms with NASA Data".
 
-- Ponto-piloto: Bragança (41.81° N, 6.76° W, confirmar no mapa)
-- Entrega: domingo, 15 de novembro de 2026 (hora limite a confirmar)
-- Estado em 14 de novembro, 12h30: dados, indicadores, pontuação, componente SI e aplicação a funcionar. Falta o NDVI, o solo, a validação e a apresentação. Ver `docs/ponto_de_situacao.pdf`.
+- Pilot site: Bragança, north-east Portugal (41.81° N, 6.76° W)
+- Current farm rotation: potato → wheat → fallow
+- The app interface is in Portuguese (the pilot farm's language); this README and `docs/ndvi_sentinel2.md` are in English.
 
-## Como correr
+![NDVI of three cereal fields near Bragança](docs/ndvi_braganca.png)
+
+## How to run
 
 ```bash
 python -m pip install -r requirements.txt
-python run.py                     # arranca a aplicação e abre-a no browser
+python run.py                     # starts the app and opens it in the browser
 ```
 
-Usar sempre `python -m ...` e `python run.py`, e não os comandos `pip` e `streamlit` diretos. Em Windows esses comandos muitas vezes não estão no PATH e dão o erro "streamlit is not recognized". O `run.py` também evita a mensagem de boas-vindas do Streamlit que pede um email na primeira vez. Se `python` não for reconhecido em Windows, trocar por `py`.
+Always use `python -m ...` and `python run.py`, not the bare `pip` and `streamlit` commands. On Windows those are often not on the PATH and fail with "streamlit is not recognized". `run.py` also skips Streamlit's first-run prompt asking for an email. If `python` is not recognised on Windows, use `py` instead.
 
-Os dados de Bragança já estão em `data/`. Para os voltar a gerar:
+The Bragança data is already in `data/`. To regenerate it (run from the project folder):
 
 ```bash
-python scripts/fetch_power.py     # descarrega o NASA POWER, 2000 a 2025 (cerca de 30 s)
-python scripts/indicators.py      # recalcula os indicadores e a pontuação
-python -m pip install pytest      # só para os testes
-python -m pytest -q               # 15 testes
+python scripts/fetch_power.py     # downloads NASA POWER, 2000 to 2025 (about 30 s)
+python scripts/indicators.py      # recomputes the indicators and scores
+python -m pip install pytest      # tests only
+python -m pytest -q               # 17 tests
 ```
 
-A aplicação precisa de internet para desenhar o mapa. O resto funciona sem rede.
+The app needs internet access to draw the map. Everything else works offline.
 
-## Decisões (registadas na sexta-feira à noite)
+The Sentinel-2 NDVI is also already in `data/`. Regenerating it needs a free [Copernicus Data Space](https://dataspace.copernicus.eu) account and an OAuth client (dashboard → User settings → OAuth clients). Credentials go in environment variables, never in the repository:
 
-| Tema | Decisão | Motivo |
-|---|---|---|
-| "SI" | Swarm Intelligence limitado: PSO só sobre os pesos | Com 4 estratégias, PSO não é necessário para escolher; serve para explorar as prioridades |
-| Clima | NASA POWER (fonte principal); IPMA só como validação, se houver tempo | Sem registo, rápido de integrar |
-| Solo | SoilGrids (global) | Não há tempo para validar cartografia local |
-| Satélite | Sentinel-2 para NDVI e solo nu; se a conta não estiver ativa até sábado à noite, avançar só com NASA POWER | Plano B explícito |
-| Mercado | Estimativa manual, marcada como hipótese | Sem tempo para recolher preços reais |
+```bash
+# PowerShell: $env:CDSE_CLIENT_ID="..."; $env:CDSE_CLIENT_SECRET="..."
+python scripts/fetch_ndvi.py --lat 41.8387 --lon -6.7206 --half-size 25 --name braganca_field1
+python scripts/fetch_ndvi.py --lat 41.8324 --lon -6.7279 --half-size 25 --name braganca_field2
+python scripts/fetch_ndvi.py --lat 41.8431 --lon -6.7046 --half-size 25 --name braganca_field3
+python scripts/plot_ndvi.py       # chart in docs/ndvi_braganca.png
+```
 
-## Estratégias a comparar
+## Strategies compared
 
-- **A. Atual (base):** batata → trigo → pousio
-- **B. Leguminosa no pousio:** batata → trigo → ervilha, tremoço ou fava
-- **C. Forragem no pousio:** batata → trigo → luzerna ou trevo
-- **D. Cereal resistente:** batata → centeio ou aveia → leguminosa
+- **A. Current (baseline):** potato → wheat → fallow
+- **B. Legume instead of fallow:** potato → wheat → pea, lupin or faba bean
+- **C. Forage instead of fallow:** potato → wheat → lucerne or clover
+- **D. Hardy cereal:** potato → rye or oats → legume
 
-Para cada uma, a aplicação mostra o porquê, a evidência, os benefícios, o que ainda não sabemos e os riscos a validar com um técnico local.
+For each one the app shows why it is proposed, the evidence, the expected benefits, what we do not know yet, and the risks to check with a local agronomist.
 
-## Como funciona
+## How it works
 
-1. **O que os dados mostram sobre o local** (`fieldshift/indicators.py`, `climate_indicators`). Por ano: chuva, temperatura, dias de geada, dias de chuva intensa (20 mm ou mais) e anomalias face à média de 2000 a 2025. Cada ano é classificado como seco (20% com menos chuva), de chuva intensa (20% com mais dias de chuva forte) ou normal.
-2. **Como cada rotação fica exposta** (`crop_year_table`, `strategy_year_table`). Um calendário por cultura diz quando o solo está coberto, quando a cultura precisa de água e quando é sensível à geada. Daí saem quatro indicadores por ano:
-   - dias de solo nu;
-   - chuva intensa a cair em solo nu (mm), como medida do risco de erosão;
-   - falta de água (mm): um balanço diário entre a chuva e a procura da cultura, com um solo que guarda até 100 mm;
-   - dias de geada em fases sensíveis.
-   Cada fase da rotação ocupa um terço da exploração, por isso o valor da estratégia é a média das três culturas.
-3. **Pontuação ponderada** (`fieldshift/scoring.py`). Cada critério (água, receita, erosão, matéria orgânica, geada) vira uma nota de 0 a 1 contra uma escala fixa. A pontuação é a soma das notas, ponderada pelas prioridades do agricultor, de 0 a 100. A incerteza aparece de três formas: o intervalo em que a pontuação fica em 8 de cada 10 anos, a percentagem de anos em que a estratégia fica em primeiro, e um teste com as margens baixas e altas.
-4. **Componente SI** (`fieldshift/pso.py`). Um PSO escrito em numpy responde a duas perguntas: quanto teriam de mudar as prioridades para o primeiro lugar mudar, e que prioridades explicam a ordem que o agricultor prefere.
-5. **Aplicação** (`app.py`). Uma página Streamlit com mapa, sliders de prioridades, restrições (rega, destino para a forragem), cenários (todos os anos, anos secos, anos de chuva intensa, um ano), margens editáveis e avisos de validação.
+1. **What the data says about the site** (`fieldshift/indicators.py`, `climate_indicators`). Per year: rainfall, temperature, frost days, heavy-rain days (20 mm or more) and anomalies against the 2000–2025 mean. Each year is labelled dry (driest 20%), heavy-rain (20% with most heavy-rain days) or normal.
+2. **How exposed each rotation is** (`crop_year_table`, `strategy_year_table`). A calendar per crop says when the soil is covered, when the crop needs water and when it is frost-sensitive. Four indicators per year come out of it:
+   - bare-soil days;
+   - heavy rain falling on bare soil (mm), as a proxy for erosion risk;
+   - water deficit (mm): a daily balance between rainfall and crop demand (Hargreaves reference evapotranspiration × crop coefficient), with soil storing up to 100 mm;
+   - frost days during sensitive stages.
+   Each rotation phase covers one third of the farm, so a strategy's value is the mean of its three crops.
+3. **Weighted score** (`fieldshift/scoring.py`). Each criterion (water, revenue, erosion, soil organic matter, frost) becomes a 0–1 sub-score against a fixed scale. The score is the sum of the sub-scores weighted by the farmer's priorities, from 0 to 100. Uncertainty is shown three ways: the range the score stays in 8 years out of 10, the share of years each strategy comes first, and a test with low and high margins.
+4. **SI component: particle swarm optimisation** (`fieldshift/pso.py`). A PSO written in numpy searches the space of priority weights to answer two questions: how much would the priorities have to change for first place to change, and which priorities explain the ranking the farmer already prefers. The score itself does not depend on the PSO; the PSO makes the result explainable and shows how robust it is.
+5. **App** (`app.py`). A one-page Streamlit app with a map, priority sliders, farm constraints (potato irrigation, an outlet for forage), scenarios (all years, dry years, heavy-rain years, a single year), editable margins and validation warnings.
+6. **Satellite check** (`scripts/fetch_ndvi.py`). Monthly Sentinel-2 L2A NDVI from 2017 to 2025 for three cereal fields north-east of Bragança (50 m squares, cloudy pixels removed using the SCL scene classification). It checks the bare-soil months in the wheat calendar. It is not part of the score.
 
-## Resultados atuais (prioridades iguais)
+## Results (equal priorities)
 
-| Cenário | 1.º | 2.º | 3.º | 4.º |
+| Scenario | 1st | 2nd | 3rd | 4th |
 |---|---|---|---|---|
-| Todos os anos (26) | D (69) | B (67) | C (65) | A (60) |
-| Anos secos (6) | D (71) | C (69) | B (69) | A (65) |
-| Anos de chuva intensa (7) | D (64) | B (63) | C (60) | A (54) |
+| All years (26) | D (69) | B (67) | C (65) | A (60) |
+| Dry years (6) | D (71) | C (69) | B (69) | A (65) |
+| Heavy-rain years (7) | D (64) | B (63) | C (60) | A (54) |
 
-As diferenças entre B, C e D são pequenas e mudam com as prioridades. O que é firme é que a rotação atual fica em último nos três cenários: trocar o pousio reduz os dias de solo nu de 250 para 158 a 184 por ano.
+The gaps between B, C and D are small and change with the priorities. What holds firmly is that the current rotation comes last in all three scenarios: replacing the fallow cuts bare-soil days from 250 to 158–184 a year. The PSO shows that moving 8% of the total weight (from water to organic matter) is enough to put the forage strategy first, so first place is fragile.
 
-## Estrutura
+## NDVI results
+
+- From July to September all three fields have no green vegetation (median NDVI below 0.25), as the wheat calendar says (soil uncovered from 11 July to 30 November). At the edges the calendar fits less well: NDVI already drops in May and June as the grain ripens and dries, and in some years vegetation is back in October and November.
+- On average a cereal field spends 6.4 months a year below 0.25 (about 195 days).
+- In winter NDVI is between 0.35 and 0.57: the soil is almost never bare, but the cover is sparse (a lush pasture would be 0.7–0.9). This casts doubt on the assumption that fallow land stays bare all year, without disproving it, because we do not know which crop was on each field in each year.
+- Low NDVI does not distinguish bare soil from dry stubble, which still protects the soil.
+
+Full method and limitations: [`docs/ndvi_sentinel2.md`](docs/ndvi_sentinel2.md).
+
+## Project structure
 
 ```
 field_shift/
 ├── README.md
 ├── requirements.txt
-├── run.py                   # arranque: python run.py
-├── app.py                   # aplicação Streamlit
+├── run.py                   # entry point: python run.py
+├── app.py                   # Streamlit app
 ├── fieldshift/
-│   ├── config.py            # culturas, estratégias, limiares e hipóteses (editar aqui)
-│   ├── indicators.py        # indicadores de clima, por cultura e por estratégia
-│   ├── scoring.py           # pontuação ponderada e incerteza
-│   └── pso.py               # componente SI (PSO sobre os pesos)
+│   ├── config.py            # crops, strategies, thresholds and assumptions (edit here)
+│   ├── indicators.py        # climate, crop and strategy indicators
+│   ├── scoring.py           # weighted score and uncertainty
+│   └── pso.py               # SI component (PSO over the weights)
 ├── scripts/
-│   ├── fetch_power.py       # Fase 1: recolha NASA POWER
-│   └── indicators.py        # Fase 2: gera as tabelas em data/
-├── data/                    # CSV gerados
+│   ├── fetch_power.py       # NASA POWER download
+│   ├── indicators.py        # builds the tables in data/
+│   ├── fetch_ndvi.py        # Sentinel-2 NDVI (Copernicus), needs credentials
+│   └── plot_ndvi.py         # NDVI chart in docs/
+├── data/                    # generated CSV files
 ├── tests/test_core.py
-├── docs/                    # ponto de situação e capturas de ecrã da demonstração
-└── notebooks/               # análise exploratória (vazio)
+├── docs/                    # NDVI write-up, app screenshots, team planning notes (Portuguese PDFs)
+└── notebooks/               # exploratory analysis (empty)
 ```
 
-## Fontes
+## Data sources
 
-| Fonte | Uso | Estado |
+| Source | Use | Status |
 |---|---|---|
-| NASA POWER (API diária, comunidade AG) | Clima, geada, radiação, humidade do solo | Em uso |
-| Sentinel-2 (Copernicus) | NDVI, solo nu | Por integrar (precisa de conta) |
-| SoilGrids (ISRIC) | Textura, matéria orgânica, água utilizável | Por integrar |
-| SRTM | Declive, para o risco de erosão | Por integrar |
-| IPMA | Validação de temperatura e precipitação | Por fazer |
-| OpenStreetMap | Fundo do mapa | Em uso |
+| NASA POWER (daily API, AG community) | Climate, frost, radiation, soil moisture | In use |
+| Sentinel-2 L2A (ESA Copernicus Data Space) | NDVI, check of bare-soil months | In use (three fields, 2017–2025) |
+| SoilGrids (ISRIC) | Texture, organic matter, available water | Not integrated |
+| SRTM | Slope, for erosion risk | Not integrated |
+| IPMA (Portuguese weather service) | Validation of temperature and rainfall | Not done |
+| OpenStreetMap | Map background | In use |
 
-## Hipóteses a validar com um técnico local
+Attributions:
 
-Estão todas em `fieldshift/config.py`:
+- NASA POWER: "These data were obtained from the NASA Langley Research Center (LaRC) POWER Project funded through the NASA Earth Science/Applied Science Program."
+- Sentinel-2: "Contains modified Copernicus Sentinel data 2017–2025." Free and open data.
+- Map: © OpenStreetMap contributors (ODbL licence; folium shows the credit on the map).
 
-- calendários das culturas (cobertura do solo, época de rega, fase sensível à geada);
-- o pousio fica com o solo nu o ano inteiro;
-- limiar de chuva intensa (20 mm por dia) e água utilizável do solo (100 mm);
-- coeficientes culturais e índice de matéria orgânica por cultura;
-- azoto fixado pelas leguminosas;
-- margens por cultura (baixa, central, alta), que são estimativas manuais.
+## Use of AI (SI) tools
 
-## Limitações a declarar
+Much of the code and documentation was written with Claude (Anthropic) as a coding assistant, directed and reviewed by the team. This includes the indicators, scoring, PSO, the Streamlit app, the Sentinel-2 NDVI scripts, the NDVI chart and this README. The problem framing, the choice of pilot site and current rotation, and the decisions above were made by the team. All agronomic and market values in `fieldshift/config.py` are working assumptions, not AI-verified facts.
 
-- Os dados de clima e satélite medem condições, não o efeito real das rotações sobre o solo. O efeito vem de literatura agronómica e precisa de validação por peritos locais.
-- O NASA POWER tem uma grelha de cerca de 50 km: é contexto regional, não mede a parcela.
-- Os dias de solo nu vêm de um calendário de culturas, não de imagens de satélite.
-- A receita não varia com o clima: um ano seco não baixa a margem.
-- A resolução varia entre fontes; a harmonização é aproximada.
-- Os preços e a produção são estimativas.
-- A ferramenta apoia a decisão, não a substitui.
+## Assumptions to check with a local agronomist
+
+All of them are in `fieldshift/config.py`:
+
+- crop calendars (soil cover, water-demand season, frost-sensitive stage);
+- fallow leaves the soil bare all year (the winter NDVI casts doubt on this, see above);
+- heavy-rain threshold (20 mm a day) and soil available water (100 mm);
+- crop coefficients and organic-matter index per crop;
+- nitrogen fixed by legumes;
+- margins per crop (low, central, high), which are manual estimates.
+
+## Limitations
+
+- Climate and satellite data measure conditions, not the real effect of the rotations on the soil. The effect comes from general agronomic literature and needs validation by local experts.
+- NASA POWER has a grid of about 50 km: regional context, not field-level.
+- Bare-soil days come from crop calendars. The Sentinel-2 NDVI only checks them in three cereal fields, without knowing which crop was on each field in each year.
+- Revenue does not vary with the weather: a dry year does not lower the margin.
+- Resolution differs between sources; harmonisation is approximate.
+- Prices and yields are estimates.
+- The tool supports the decision; it does not replace the farmer or the local agronomist.

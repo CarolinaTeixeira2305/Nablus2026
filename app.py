@@ -16,6 +16,9 @@ from fieldshift import config as cfg, indicators as ind, pso, scoring as sc
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data" / "power_braganca_daily.csv"
+NDVI_FILES = sorted((ROOT / "data").glob("ndvi_braganca_field*_monthly.csv"))
+NDVI_BARE = 0.25  # NDVI abaixo disto = solo nu ou vegetação seca (regra prática)
+MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 
 # Cores: uma por critério, sempre na mesma ordem (paleta validada para daltonismo)
 CRIT_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
@@ -49,6 +52,17 @@ def crops_with(margins: pd.DataFrame, has_forage_outlet: bool) -> dict:
     if not has_forage_outlet:
         crops["luzerna"]["margem"] = (0.0, 0.0, 0.0)
     return crops
+
+
+@st.cache_data
+def load_ndvi() -> pd.DataFrame:
+    """NDVI mensal do Sentinel-2 para as parcelas de Bragança (scripts/fetch_ndvi.py)."""
+    frames = []
+    for f in NDVI_FILES:
+        d = pd.read_csv(f)
+        d["parcela"] = "Parcela " + f.stem.split("field")[1].split("_")[0]
+        frames.append(d)
+    return pd.concat(frames, ignore_index=True)
 
 
 def pct(x: float) -> str:
@@ -146,6 +160,42 @@ with right:
     st.caption("Ano seco: entre os 20% com menos chuva. Ano de chuva intensa: entre os 20% com mais dias "
                f"de chuva forte. As barras apagadas ficam fora do cenário escolhido ({scenario.lower()}).")
 
+# Verificação com satélite: o calendário do cereal bate certo com as imagens?
+if is_pilot and NDVI_FILES:
+    st.subheader("Verificação com satélite: quando fica o solo sem vegetação verde?")
+    ndvi = load_ndvi()
+    # Janela em que o calendário do trigo (config.py) deixa o solo descoberto
+    (m0, d0), (m1, d1) = cfg.CROPS["trigo"]["cover"][0][1], cfg.CROPS["trigo"]["cover"][1][0]
+    # Cada ponto do gráfico está no meio do mês: dia d do mês m fica em m - 0,5 + (d - 1) / 31
+    bare_from, bare_to = m0 - 0.5 + d0 / 31, m1 - 0.5 + (d1 - 1) / 31
+    # Cinzento médio e banda transparente: legíveis com o tema claro e com o escuro
+    band = alt.Chart(pd.DataFrame({"x0": [bare_from], "x1": [bare_to]})).mark_rect(
+        color="#b08a5e", opacity=0.22).encode(x="x0:Q", x2="x1:Q")
+    band_label = alt.Chart(pd.DataFrame({"x": [(bare_from + bare_to) / 2], "y": [0.66]})).mark_text(
+        color="#9aa0a6", fontSize=11).encode(x="x:Q", y="y:Q", text=alt.value("calendário do trigo: solo descoberto"))
+    rule = alt.Chart(pd.DataFrame({"y": [NDVI_BARE]})).mark_rule(
+        color="#9aa0a6", strokeDash=[4, 3]).encode(y="y:Q")
+    lines = alt.Chart(ndvi).mark_line(strokeWidth=2, point=alt.OverlayMarkDef(size=40, filled=True)).encode(
+        x=alt.X("month:Q", title=None, scale=alt.Scale(domain=[1, 12.4], nice=False),
+                axis=alt.Axis(values=list(range(1, 13)), labelExpr=f"{MONTHS_PT}[datum.value - 1]")),
+        y=alt.Y("ndvi_median:Q", title="NDVI (mediana mensal, 2017 a 2025)", scale=alt.Scale(domain=[0, 0.7])),
+        color=alt.Color("parcela:N", title=None, scale=alt.Scale(range=["#2a78d6", "#eb6834", "#1baf7a"]),
+                        legend=alt.Legend(orient="top")),
+        tooltip=[alt.Tooltip("parcela:N", title="Parcela"), alt.Tooltip("month:Q", title="Mês"),
+                 alt.Tooltip("ndvi_median:Q", title="NDVI mediano", format=".2f"),
+                 alt.Tooltip("share_bare:Q", title="Anos com NDVI < 0,25", format=".0%")],
+    )
+    st.altair_chart((band + band_label + rule + lines).properties(height=260), use_container_width=True)
+    summer = ndvi[ndvi["month"].isin([7, 8, 9])]["ndvi_median"].max()
+    winter = ndvi[ndvi["month"].isin([1, 2, 3])]["ndvi_median"]
+    st.caption(
+        f"Três parcelas de cereal a nordeste de Bragança, Sentinel-2 (Copernicus), sem nuvens. De julho a setembro "
+        f"a mediana do NDVI fica abaixo de {NDVI_BARE:.2f} (máximo {summer:.2f}): o solo fica sem vegetação verde, como "
+        "diz o calendário do trigo. A descida começa já em maio e junho, quando o grão amadurece e seca. "
+        f"No inverno o NDVI fica entre {winter.min():.2f} e {winter.max():.2f}: há vegetação, mas rala, longe de um "
+        "prado do Minho (0.7 a 0.9). NDVI baixo também pode ser restolho, que ainda protege o solo. "
+        "Detalhes em docs/ndvi_sentinel2.md.")
+
 # --------------------------------------------------------------- 2. comparação
 st.header("2. Comparação das estratégias")
 
@@ -240,7 +290,10 @@ if irrigated:
 winners = {}
 for case, label in [(0, "baixas"), (2, "altas")]:
     sy = ind.strategy_year_table(crop_table, crops=crops, irrigated_potato=irrigated, margin_case=case)
-    winners[label] = sc.summarise(sc.subscores(sy, refs), weights, years).index[0]
+    # Escala de receita própria de cada caso (como no caso central). Com a escala das margens
+    # centrais, as margens altas passam todas o máximo, ficam empatadas e o "vencedor" é arbitrário.
+    refs_case = sc.reference_scales(ind.strategy_year_table(crop_table, crops=crops, margin_case=case))
+    winners[label] = sc.summarise(sc.subscores(sy, refs_case), weights, years).index[0]
 if all(v == best for v in winners.values()):
     st.caption(f"Teste às margens: {names[best]} continua em primeiro com as margens baixas e com as altas.")
 else:
@@ -330,4 +383,7 @@ with b:
     st.markdown("**De onde vem cada critério**")
     st.dataframe(src, hide_index=True, use_container_width=True)
     st.markdown("Clima: [NASA POWER](https://power.larc.nasa.gov/), comunidade de agroclimatologia, "
-                "dados diários de 2000 a 2025. Mapa: OpenStreetMap.")
+                "dados diários de 2000 a 2025. These data were obtained from the NASA Langley Research Center "
+                "(LaRC) POWER Project funded through the NASA Earth Science/Applied Science Program. "
+                "Satélite: Sentinel-2 L2A, [Copernicus Data Space Ecosystem](https://dataspace.copernicus.eu/). "
+                "Contains modified Copernicus Sentinel data 2017–2025. Mapa: © contribuidores do OpenStreetMap.")
