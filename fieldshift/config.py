@@ -1,27 +1,30 @@
-"""Configuração do Field Shift: culturas, estratégias, limiares e hipóteses.
+"""Field Shift configuration: crops, strategies, thresholds and assumptions.
 
-TUDO o que está neste ficheiro e não vem de dados NASA é uma HIPÓTESE de
-trabalho (literatura agronómica geral ou estimativa manual da equipa) e tem de
-ser validado por um técnico local antes de qualquer decisão no terreno.
+EVERYTHING in this file that does not come from NASA data is a working
+ASSUMPTION (general agronomic literature or a manual estimate by the team) and
+must be validated by a local agronomist before any decision in the field.
+
+Dictionary keys (e.g. "batata", "nome", "porque") are internal identifiers and
+stay in Portuguese; all text shown to the user is in English.
 """
 
-# --- Ponto-piloto -----------------------------------------------------------
+# --- Pilot site ---------------------------------------------------------------
 PILOT = {"nome": "Bragança", "lat": 41.81, "lon": -6.76}
 
-# --- Limiares (hipóteses) ----------------------------------------------------
-HEAVY_RAIN_MM = 20.0       # dia de chuva intensa (risco de erosão em solo nu)
-DRY_ROOT_WETNESS = 0.50    # GWETROOT abaixo disto = solo seco (só contexto)
-SOIL_AWC_MM = 100.0        # água utilizável no solo (mm); refinar com SoilGrids
-KC_BARE = 0.30             # evaporação de solo nu, fração da ET de referência
+# --- Thresholds (assumptions) -------------------------------------------------
+HEAVY_RAIN_MM = 20.0       # heavy-rain day (erosion risk on bare soil)
+DRY_ROOT_WETNESS = 0.50    # GWETROOT below this = dry soil (context only)
+SOIL_AWC_MM = 100.0        # soil available water (mm); refine with SoilGrids
+KC_BARE = 0.30             # bare-soil evaporation, fraction of reference ET
 
-# --- Culturas ----------------------------------------------------------------
-# cover:  janelas (mês, dia) em que a cultura cobre o solo
-# season: janelas em que a cultura precisa de água (para o défice hídrico)
-# frost:  janelas em que a geada causa dano, abaixo de frost_t (°C)
-# kc:     coeficiente cultural médio na época (procura = kc x ET de referência)
-# mo:     contributo para a matéria orgânica do solo, de 0 a 1 (hipótese)
-# n_fix:  azoto fixado que fica para a cultura seguinte (kg N/ha, hipótese)
-# margem: margem bruta em EUR/ha/ano (baixa, central, alta), estimativa manual
+# --- Crops --------------------------------------------------------------------
+# cover:  (month, day) windows in which the crop covers the soil
+# season: windows in which the crop needs water (for the water deficit)
+# frost:  windows in which frost below frost_t (°C) damages the crop
+# kc:     mean crop coefficient over the season (demand = kc x reference ET)
+# mo:     contribution to soil organic matter, 0 to 1 (assumption)
+# n_fix:  nitrogen fixed and left for the next crop (kg N/ha, assumption)
+# margem: gross margin in EUR/ha/year (low, central, high), manual estimate
 CROPS = {
     "batata": {
         "cover": [((5, 15), (9, 15))], "season": [((4, 15), (9, 15))],
@@ -55,75 +58,80 @@ CROPS = {
 }
 
 CROP_LABELS = {
-    "batata": "Batata", "trigo": "Trigo", "pousio": "Pousio (solo nu)",
-    "leguminosa": "Leguminosa (ervilha, tremoço ou fava)",
-    "luzerna": "Luzerna ou trevo (forragem)", "centeio": "Centeio ou aveia",
+    "batata": "Potato", "trigo": "Wheat", "pousio": "Fallow (bare soil)",
+    "leguminosa": "Legume (pea, lupin or faba bean)",
+    "luzerna": "Lucerne or clover (forage)", "centeio": "Rye or oats",
+}
+# Short names for table rows
+CROP_SHORT = {
+    "batata": "Potato", "trigo": "Wheat", "pousio": "Fallow",
+    "leguminosa": "Legume", "luzerna": "Lucerne/clover", "centeio": "Rye/oats",
 }
 
-# --- Estratégias -------------------------------------------------------------
-# Para cada uma: porquê, evidência, benefícios, lacunas e riscos a validar,
-# como pede o enunciado do desafio.
+# --- Strategies ---------------------------------------------------------------
+# For each one: why, evidence, benefits, gaps and risks to validate,
+# as the challenge statement asks.
 STRATEGIES = {
     "A": {
-        "nome": "A. Atual", "curto": "A. Atual",
+        "nome": "A. Current", "curto": "A. Current",
         "culturas": ["batata", "trigo", "pousio"],
-        "porque": "É a rotação que o agricultor já faz. Serve de referência para todas as comparações.",
-        "evidencia": "Os dados de clima do local mostram em que alturas o pousio fica exposto a chuva intensa e a batata fica sem água.",
-        "beneficios": ["Conhecida, sem custos nem equipamento novos.", "O pousio dá descanso ao solo e folga de trabalho."],
-        "lacunas": ["Não sabemos se o pousio fica mesmo nu ou com vegetação espontânea.", "Faltam rendimentos reais da exploração."],
-        "riscos": ["Solo nu durante o pousio: erosão e perda de matéria orgânica.", "Batata exigente em água e sensível a doenças fúngicas."],
+        "porque": "The rotation the farmer already uses. It is the baseline for every comparison.",
+        "evidencia": "The site's climate data shows when the fallow is exposed to heavy rain and when the potato runs short of water.",
+        "beneficios": ["Familiar, with no new costs or equipment.", "The fallow rests the soil and frees up labour."],
+        "lacunas": ["We do not know whether the fallow really stays bare or grows spontaneous vegetation.", "Real farm yields are missing."],
+        "riscos": ["Bare soil during the fallow: erosion and loss of organic matter.", "Potato needs a lot of water and is prone to fungal diseases."],
     },
     "B": {
-        "nome": "B. Leguminosa no pousio", "curto": "B. Leguminosa",
+        "nome": "B. Legume instead of fallow", "curto": "B. Legume",
         "culturas": ["batata", "trigo", "leguminosa"],
-        "porque": "Troca o pousio por uma leguminosa de grão, que cobre o solo no outono e no inverno e fixa azoto.",
-        "evidencia": "Literatura agronómica geral: as leguminosas fixam azoto e reduzem a adubação da cultura seguinte. Confiança média; o valor local depende da espécie e do solo.",
-        "beneficios": ["Menos adubo azotado para a batata.", "Solo coberto na época em que hoje fica nu.", "Uma colheita extra."],
-        "lacunas": ["Rendimento e preço das leguminosas na região.", "Quanto azoto fica de facto no solo."],
-        "riscos": ["Janela de sementeira em Bragança (frio e geada na primavera).", "Mercado para ervilha, tremoço ou fava.", "Doenças se a leguminosa voltar demasiado cedo à mesma parcela."],
+        "porque": "Replaces the fallow with a grain legume, which covers the soil in autumn and winter and fixes nitrogen.",
+        "evidencia": "General agronomic literature: legumes fix nitrogen and reduce fertiliser for the next crop. Medium confidence; the local value depends on the species and the soil.",
+        "beneficios": ["Less nitrogen fertiliser for the potato.", "Soil covered in the season when it is bare today.", "An extra harvest."],
+        "lacunas": ["Yield and price of legumes in the region.", "How much nitrogen actually stays in the soil."],
+        "riscos": ["Sowing window in Bragança (cold and spring frost).", "Market for pea, lupin or faba bean.", "Diseases if the legume returns to the same field too soon."],
     },
     "C": {
-        "nome": "C. Forragem no pousio", "curto": "C. Forragem",
+        "nome": "C. Forage instead of fallow", "curto": "C. Forage",
         "culturas": ["batata", "trigo", "luzerna"],
-        "porque": "Troca o pousio por luzerna ou trevo, que cobrem o solo quase todo o ano e dão forragem.",
-        "evidencia": "Literatura agronómica geral: as forragens perenes protegem o solo e aumentam a matéria orgânica. Confiança média; uma luzerna de um só ano rende menos do que uma de vários anos.",
-        "beneficios": ["É a opção com mais dias de solo coberto.", "Forragem para pecuária ou para venda.", "Mais azoto e matéria orgânica."],
-        "lacunas": ["Se há pecuária ou comprador para a forragem.", "Custo de instalação para apenas um ano de cultura."],
-        "riscos": ["Gasta mais água no verão; sem rega pode produzir pouco.", "Exige equipamento de corte e de enfardar.", "A luzerna não tolera solos ácidos; confirmar o pH."],
+        "porque": "Replaces the fallow with lucerne or clover, which cover the soil almost all year and provide forage.",
+        "evidencia": "General agronomic literature: perennial forages protect the soil and raise organic matter. Medium confidence; a one-year lucerne yields less than a multi-year one.",
+        "beneficios": ["The option with the most days of covered soil.", "Forage for livestock or for sale.", "More nitrogen and organic matter."],
+        "lacunas": ["Whether there is livestock or a buyer for the forage.", "Establishment cost for just one year of crop."],
+        "riscos": ["Uses more water in summer; without irrigation it may yield little.", "Needs cutting and baling equipment.", "Lucerne does not tolerate acid soils; check the pH."],
     },
     "D": {
-        "nome": "D. Cereal resistente", "curto": "D. Cereal resistente",
+        "nome": "D. Hardy cereal", "curto": "D. Hardy cereal",
         "culturas": ["batata", "centeio", "leguminosa"],
-        "porque": "Troca o trigo por centeio ou aveia, mais tolerantes ao frio e à seca, e o pousio por uma leguminosa.",
-        "evidencia": "Literatura agronómica geral: o centeio tolera melhor frio, seca e solos pobres do que o trigo. Confiança média; é uma cultura tradicional de Trás-os-Montes.",
-        "beneficios": ["Menor risco de geada e de seca no cereal.", "Solo coberto mais cedo no outono.", "Azoto da leguminosa."],
-        "lacunas": ["Preço e procura de centeio ou aveia.", "Rendimento na região."],
-        "riscos": ["Margem do centeio normalmente abaixo da do trigo.", "Os mesmos riscos da leguminosa da estratégia B."],
+        "porque": "Replaces wheat with rye or oats, which tolerate cold and drought better, and the fallow with a legume.",
+        "evidencia": "General agronomic literature: rye tolerates cold, drought and poor soils better than wheat. Medium confidence; it is a traditional crop in Trás-os-Montes.",
+        "beneficios": ["Lower frost and drought risk for the cereal.", "Soil covered earlier in autumn.", "Nitrogen from the legume."],
+        "lacunas": ["Price and demand for rye or oats.", "Yield in the region."],
+        "riscos": ["Rye margin is usually below wheat's.", "The same risks as the legume in strategy B."],
     },
 }
 
-# --- Critérios (prioridades do agricultor) -----------------------------------
-# fonte: de onde vem o valor de cada critério, para o utilizador saber em que confiar
+# --- Criteria (farmer's priorities) -------------------------------------------
+# fonte: where each criterion's value comes from, so the user knows what to trust
 CRITERIA = {
-    "agua": {"nome": "Água", "descricao": "Menos falta de água para as culturas",
-             "fonte": "Dados NASA POWER + calendário das culturas (hipótese)"},
-    "receita": {"nome": "Receita", "descricao": "Maior margem por hectare",
-                "fonte": "Estimativa manual (hipótese)"},
-    "erosao": {"nome": "Erosão", "descricao": "Menos chuva intensa em solo nu",
-               "fonte": "Dados NASA POWER + calendário das culturas (hipótese)"},
-    "materia_organica": {"nome": "Matéria orgânica", "descricao": "Mais matéria orgânica no solo",
-                         "fonte": "Literatura agronómica (hipótese)"},
-    "geada": {"nome": "Geada", "descricao": "Menos geada em fases sensíveis",
-              "fonte": "Dados NASA POWER + calendário das culturas (hipótese)"},
+    "agua": {"nome": "Water", "descricao": "Less water shortage for the crops",
+             "fonte": "NASA POWER data + crop calendar (assumption)"},
+    "receita": {"nome": "Revenue", "descricao": "Higher margin per hectare",
+                "fonte": "Manual estimate (assumption)"},
+    "erosao": {"nome": "Erosion", "descricao": "Less heavy rain on bare soil",
+               "fonte": "NASA POWER data + crop calendar (assumption)"},
+    "materia_organica": {"nome": "Organic matter", "descricao": "More soil organic matter",
+                         "fonte": "Agronomic literature (assumption)"},
+    "geada": {"nome": "Frost", "descricao": "Less frost during sensitive stages",
+              "fonte": "NASA POWER data + crop calendar (assumption)"},
 }
 DEFAULT_WEIGHTS = {"agua": 5, "receita": 5, "erosao": 5, "materia_organica": 5, "geada": 5}
 
 LIMITATIONS = [
-    "Os dados de clima e de satélite medem as condições do local, não o efeito real das rotações sobre o solo.",
-    "O efeito das rotações vem de literatura agronómica geral e precisa de validação por peritos locais.",
-    "O NASA POWER tem uma grelha de cerca de 50 km: é contexto regional, não mede a parcela.",
-    "Os dias de solo nu vêm de um calendário de culturas. O NDVI do Sentinel-2 em três parcelas de cereal confirma "
-    "o verão sem vegetação verde, mas não sabemos que cultura esteve em cada parcela em cada ano.",
-    "As margens e os preços são estimativas manuais, não valores de mercado confirmados.",
-    "A ferramenta apoia a decisão, não a substitui. O agricultor e o técnico local têm a última palavra.",
+    "Climate and satellite data measure the site's conditions, not the real effect of the rotations on the soil.",
+    "The effect of the rotations comes from general agronomic literature and needs validation by local experts.",
+    "NASA POWER has a grid of about 50 km: regional context, not field-level.",
+    "Bare-soil days come from crop calendars. Sentinel-2 NDVI in three cereal fields confirms the summer without "
+    "green vegetation, but we do not know which crop was on each field in each year.",
+    "Margins and prices are manual estimates, not confirmed market values.",
+    "The tool supports the decision; it does not replace it. The farmer and the local agronomist have the last word.",
 ]
