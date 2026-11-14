@@ -1,12 +1,11 @@
-"""Arranca a aplicacao Field Shift e abre-a no browser.
+"""Starts the Field Shift app and opens it in the browser.
 
-Uso (a partir da pasta do projeto):
+Usage (from the project folder):
     python run.py
 
-Porque existe: em Windows o comando "streamlit" muitas vezes nao esta no PATH,
-e na primeira vez o Streamlit para a pedir um email. Este arranque chama o
-Streamlit atraves do proprio Python e em modo silencioso, por isso nenhum dos
-dois acontece.
+Why it exists: on Windows the "streamlit" command is often not on the PATH,
+and on first run Streamlit stops to ask for an email. This launcher calls
+Streamlit through Python itself, in headless mode, so neither happens.
 """
 import subprocess
 import sys
@@ -20,11 +19,11 @@ ROOT = Path(__file__).resolve().parent
 try:
     import streamlit  # noqa: F401
 except ImportError:
-    sys.exit("Faltam as dependencias. Corra primeiro:\n"
+    sys.exit("Dependencies are missing. First run:\n"
              f"    {Path(sys.executable).name} -m pip install -r requirements.txt")
 
 url = f"http://localhost:{PORT}"
-print(f"A abrir o Field Shift em {url} (Ctrl+C para parar)")
+print(f"Opening Field Shift at {url} (Ctrl+C to stop)")
 threading.Timer(4, webbrowser.open, args=[url]).start()
 try:
     subprocess.run([sys.executable, "-m", "streamlit", "run", str(ROOT / "app.py"),

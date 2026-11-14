@@ -5,7 +5,7 @@ NASA Space Apps Challenge 2026, challenge "Field Shift: Adapting Farms with NASA
 
 - Pilot site: Bragança, north-east Portugal (41.81° N, 6.76° W)
 - Current farm rotation: potato → wheat → fallow
-- The app interface is in Portuguese (the pilot farm's language); this README and `docs/ndvi_sentinel2.md` are in English.
+- The app, this README and `docs/ndvi_sentinel2.md` are in English. Internal identifiers in the code (dictionary keys, column names) are in Portuguese.
 
 ![NDVI of three cereal fields near Bragança](docs/ndvi_braganca.png)
 
@@ -101,7 +101,7 @@ field_shift/
 │   └── plot_ndvi.py         # NDVI chart in docs/
 ├── data/                    # generated CSV files
 ├── tests/test_core.py
-├── docs/                    # NDVI write-up, app screenshots, team planning notes (Portuguese PDFs)
+├── docs/                    # NDVI write-up and chart, app screenshots
 └── notebooks/               # exploratory analysis (empty)
 ```
 
