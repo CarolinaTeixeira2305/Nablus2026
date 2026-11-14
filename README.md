@@ -72,6 +72,18 @@ For each one the app shows why it is proposed, the evidence, the expected benefi
 
 The gaps between B, C and D are small and change with the priorities. What holds firmly is that the current rotation comes last in all three scenarios: replacing the fallow cuts bare-soil days from 250 to 158–184 a year. The PSO shows that moving 8% of the total weight (from water to organic matter) is enough to put the forage strategy first, so first place is fragile.
 
+## Screenshots
+
+The site's climate (all years):
+
+![App: what NASA data shows about the site](docs/app_all_years.png)
+
+Strategy comparison in dry years and in heavy-rain years:
+
+![App: strategy comparison, dry years](docs/app_dry_years.png)
+
+![App: strategy comparison, heavy-rain years](docs/app_heavy_rain_years.png)
+
 ## NDVI results
 
 - From July to September all three fields have no green vegetation (median NDVI below 0.25), as the wheat calendar says (soil uncovered from 11 July to 30 November). At the edges the calendar fits less well: NDVI already drops in May and June as the grain ripens and dries, and in some years vegetation is back in October and November.
