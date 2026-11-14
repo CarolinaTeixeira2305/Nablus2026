@@ -1,0 +1,9 @@
+requests>=2.31
+pandas>=2.0
+numpy>=1.25
+streamlit>=1.30
+folium>=0.15
+streamlit-folium>=0.15
+altair>=5.0
+# Testes (opcional): pip install pytest
+# pyswarms deixou de ser preciso: o PSO esta escrito em numpy em fieldshift/pso.py
